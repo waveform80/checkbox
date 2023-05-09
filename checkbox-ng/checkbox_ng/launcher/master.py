@@ -262,7 +262,8 @@ class RemoteMaster(ReportsStage, MainLoopStage):
         configuration = dict()
         configuration['launcher'] = self._launcher_text
         configuration['normal_user'] = self._normal_user
-
+        #FIXME: This does not consider the service configuration
+        #       and it should (for example: skip test plan selection)
         try:
             tps = self.sa.start_session(configuration)
         except RuntimeError as exc:

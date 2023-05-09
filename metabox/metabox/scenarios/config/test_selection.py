@@ -161,3 +161,17 @@ class RemoteTestSelectionResolution(Scenario):
         Start(),
         AssertPrinted(".*config-environ-source.*"),
     ]
+
+class RemoteTestConfigLocalViaRemote(Scenario):
+    """
+    Some configurations of service are about remote, 
+    for example whether test selection is forced.
+    """
+    modes = ["remote"]
+    checkbox_conf = read_text(test_selection, "checkbox_no_launcher.conf")
+    steps = [
+            Put("/home/ubuntu/.config/checkbox.conf", checkbox_conf,
+                target="service"), 
+            Start(),
+            Expect("Results")
+    ]
