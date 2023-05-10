@@ -54,3 +54,12 @@ include:
  action/take-ownership
  # Then collect all of the information
  query/.*
+
+unit: test plan
+id: tmp_reset_last
+_name: Resets the TPM (Trusted Platform Module) keys to factory default
+_description:
+  Resets the TPM keys to factory default so that they can
+  be reinitialized by a subsequent install
+include:
+  tpm/tpm_reset
