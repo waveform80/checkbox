@@ -175,6 +175,7 @@ nested_part:
     stress-ng-cert-automated
     tpm-cert-automated
     info-attachment-cert-full
+    tpm_reset_last
 exclude:
     com.canonical.certification::keys/hibernate
     com.canonical.certification::keys/lock-screen

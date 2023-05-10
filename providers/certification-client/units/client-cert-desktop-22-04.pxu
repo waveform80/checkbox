@@ -153,6 +153,7 @@ nested_part:
     # with.
     power-management-reboot-poweroff-cert-automated
     tpm-cert-automated
+    tpm_reset_last
 bootstrap_include:
     device
     graphics_card
