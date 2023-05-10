@@ -283,3 +283,17 @@ requires: snap.name == 'tpm'
 command: tpm.getpubek --well-known
 estimated_duration: 1s
 flags: preserve-locale preserve-cwd
+
+unit: job
+id: tmp/tpm_reset
+category_id: tpm
+_summary: Clears TPM
+_description:
+ Clears the TPM to factory default values allowing
+ it to be reinitialized.
+plugin: shell
+requires:
+ executable.name == 'tee'
+user: root
+command: echo 5 | tee /sys/class/tpm/tpm0/ppi/request
+depends: disk/encryption/detect
