@@ -546,7 +546,7 @@ parts:
     plugin: nil
     source: https://github.com/intel/linux-intel-lts.git
     source-depth: 1
-    source-branch: 6.1/linux
+    source-tag: lts-v6.1.28-linux-230601T020337Z # This is the working tag currently
     build-packages:
       - gcc
       - make
