@@ -133,9 +133,10 @@ QEMU_ARCH_CONFIG = {
     },
 }
 
+
 def check_sriov_interfaces():
     """
-    Find SRIOV capable devices that are online and return the first 
+    Find SRIOV capable devices that are online and return the first
     Intel device
     """
     net_dir = "/sys/class/net"
@@ -144,21 +145,23 @@ def check_sriov_interfaces():
     intel_device = None
 
     try:
-        # Detect Intel and Mellanox SR-IOV Capable Interfaces 
+        # Detect Intel and Mellanox SR-IOV Capable Interfaces
         # Todo -  add other vendor devices
         for device_path in glob.glob(os.path.join(net_dir, '*')):
             interface = os.path.basename(device_path)
             # sriov_totalvfs - max number of vf's supported for each device
-            sriov_totalvfs_path = os.path.join(device_path, 'device/sriov_totalvfs')
-            
+            sriov_totalvfs_path = os.path.join(device_path,
+                                               'device/sriov_totalvfs')
+
             try:
                 if os.path.exists(sriov_totalvfs_path):
                     with open(sriov_totalvfs_path, 'r') as file:
                         num_vfs = int(file.read().strip())
-                    # sriov is supported  on an interface if 
+                    # sriov is supported  on an interface if
                     # sriov_totalvfs  > 0
                     if num_vfs > 0:
-                        vendor_id_path = os.path.join(device_path, 'device/vendor')
+                        vendor_id_path = os.path.join(device_path,
+                                                      'device/vendor')
                         with open(vendor_id_path, 'r') as file:
                             vendor_id = file.read().strip()
                         if vendor_id == '0x8086':
@@ -168,33 +171,35 @@ def check_sriov_interfaces():
                         else:
                             sriov_device[interface] = "Unknown"
 
-                        # Check to see if the device is online 
+                        # Check to see if the device is online
                         carrier_path = os.path.join(device_path, 'carrier')
                         if os.path.exists(carrier_path):
                             with open(carrier_path, 'r') as file:
                                 carrier_status = file.read().strip()
                             if carrier_status == '1':
                                 link_status[interface] = "online"
-                                # Currently we are only testing the 
+                                # Currently we are only testing the
                                 # first SRIOV capable Intel device
                                 # Todo - add testing of Mellanox devices
                                 # and other vendors
-                                if intel_device is None and sriov_device[interface] == "Intel":
+                                if intel_device is None and \
+                                   sriov_device[interface] == "Intel":
                                     intel_device = interface
                             else:
                                 link_status[interface] = "offline"
             except IOError as e:
                 logging.error(f"Error reading from file in {device_path}: {e}")
             except ValueError as e:
-                logging.error(f"Error processing values for {device_path}: {e}")
+                logging.error(f"Error processing values for \
+                             {device_path}: {e}")
     except Exception as e:
         logging.error(f"Failed to process interfaces: {e}")
 
     if intel_device is not None:
         return intel_device
     else:
-       print("No SRIOV Interfaces are available")
-       sys.exit(1)
+        print("No SRIOV Interfaces are available")
+        sys.exit(1)
 
 
 def get_release_to_test():
@@ -1077,6 +1082,7 @@ class LXDTest_vm(object):
         logging.debug("Testing VM Failed")
         return False
 
+
 class LXDTest_sriov(object):
 
     def __init__(self, template=None, image_rootfs=None, test_type=None):
@@ -1091,8 +1097,8 @@ class LXDTest_sriov(object):
         self.name = "testbed"
         self.image_alias = uuid4().hex
         self.default_remote = "ubuntu:"
-        self.os_version = get_release_to_test() 
-        self.vf_driver = "ixgbe"  
+        self.os_version = get_release_to_test()
+        self.vf_driver = "ixgbe"
         self.stdout = None
 
     def run_command(self, cmd, log_stderr=True):
@@ -1175,7 +1181,7 @@ class LXDTest_sriov(object):
                 result = self.run_command(cmd)
                 retry -= 1
 
-        return result		
+        return result
 
     def setup_vm(self):
         result = True
@@ -1248,7 +1254,7 @@ class LXDTest_sriov(object):
                     "Skipping Download.".format(filename)
                 )
                 self.template_tarball = filename
-      
+
         if self.test_type == "vm":
             result = self.setup_vm()
         else:
@@ -1294,7 +1300,8 @@ class LXDTest_sriov(object):
         logging.debug("Cleaning up images and VMs created during test")
         self.run_command("lxc image delete {}".format(self.image_alias), False)
         self.run_command("lxc delete --force {}".format(self.name), False)
-        self.run_command("lxc network delete {}".format(self.network_name), False)
+        self.run_command("lxc network delete {}".
+                         format(self.network_name), False)
 
     def start_sriov(self):
         # Create Virtual Machine
@@ -1303,29 +1310,32 @@ class LXDTest_sriov(object):
 
         ubuntu_version = get_release_to_test()
         if float(ubuntu_version) >= 24.04:
-            print("IOMMU is enabled by default on the host on {} and up.".format(ubuntu_version))
+            print("IOMMU is enabled by default on the host on {} \
+                  and up.".format(ubuntu_version))
         else:
-            print("IOMMU is not enabled by default on  on the host below {} .".format(ubuntu_version))
+            print("IOMMU is not enabled by default on  on the host \
+                   below {} .".format(ubuntu_version))
             return False
 
         if not self.setup():
             logging.error("One or more setup stages failed.")
-            return False       
+            return False
 
-        self.sriov_interface = check_sriov_interfaces()     
+        self.sriov_interface = check_sriov_interfaces()
         logging.debug("sriov interface = {}".format(self.sriov_interface))
-        
+
         cmd = "lxc network create {} --type=sriov parent={}".format(
                 self.network_name, self.sriov_interface)
         if not self.run_command(cmd):
             return False
-  
-        logging.debug("Waiting {} for SRIOV network creation".format(wait_interval))    
+
+        logging.debug("Waiting {} for SRIOV network creation".
+                      format(wait_interval))
         time.sleep(wait_interval)
         cmd = "bash -c \"lxc network list| grep {}\"".format(self.network_name)
         if not self.run_command(cmd):
-            return False         
-            
+            return False
+
         if not self.image_url and not self.template_url:
             logging.debug(
                 "No local image available, attempting to "
@@ -1337,15 +1347,15 @@ class LXDTest_sriov(object):
             cmd = "lxc init {} {}".format(self.image_alias, self.name)
 
         if self.test_type == "vm":
-           cmd += ' --vm'
-           
+            cmd += ' --vm'
+
         cmd += " --network {}".format(self.network_name)
         if not self.run_command(cmd):
             return False
 
         logging.debug("Start VM:")
         if not self.run_command("lxc start {} ".format(self.name)):
-            return False          
+            return False
         logging.debug(cmd)
 
         logging.debug("Virtual Machine listing:")
@@ -1359,28 +1369,33 @@ class LXDTest_sriov(object):
         if not self.run_command("lxc list"):
             return False
 
-        cmd="bash -c \"lsb_release -r | awk \'{print $2}\'\""
+        cmd = "bash -c \"lsb_release -r | awk \'{print $2}\'\""
         if not self.run_command(cmd):
             return False
 
         ubuntu_version = self.stdout
         if ubuntu_version and float(ubuntu_version) >= 24.04:
-            print("SRIOV modules are loaded by default on {} on the guest".format(ubuntu_version))
+            print("SRIOV modules are loaded by default on {} on \
+                  the guest".format(ubuntu_version))
         else:
-            print("SRIOV modules are not loaded by default on {} on the guest.".format(ubuntu_version))
+            print("SRIOV modules are not loaded by default on {}\
+                  on the guest.".format(ubuntu_version))
             return False
 
-        cmd = "bash -c \"lxc network list| grep {}\"".format(self.network_name)
+        cmd = "bash -c \"lxc network list| grep {}\"".\
+              format(self.network_name)
         if not self.run_command(cmd):
             return False
 
         logging.debug("Check for SRIOV VF on the VM")
-        cmd = "lxc exec {} -- bash -c \"lsmod | grep {}\"".format(self.name, self.vf_driver)
+        cmd = "lxc exec {} -- bash -c \"lsmod | grep {}\"".\
+              format(self.name, self.vf_driver)
         if not self.run_command(cmd):
             logging.debug("SRIOV Vf was not created")
             return False
 
         return True
+
 
 def test_sriov(args):
     '''
@@ -1395,24 +1410,25 @@ def test_sriov(args):
     # First in priority are environment variables.
     if "LXD_TEMPLATE" in os.environ:
         template = os.environ["LXD_TEMPLATE"]
-    if "KVM_IMAGE" in os.environ:
-        image = os.environ["KVM_IMAGE"]
-    if "LXD_ROOTFS" in os.environ:
-        rootfs = os.environ["LXD_ROOTFS"]        
-        
 
     # Finally, highest-priority are command line arguments.
     if args.type:
-        test_type = args.type        
+        test_type = args.type
     if args.template:
         template = args.template
-        
+
     if test_type == 'vm':
         testname = "Virtual Machine"
+        if "KVM_IMAGE" in os.environ:
+            image_rootfs = os.environ["KVM_IMAGE"]
+        # highest-priority are command line arguments.
         if args.image:
             image_rootfs = args.image
     else:
         testname = "Container"
+        if "LXD_ROOTFS" in os.environ:
+            image_rootfs = os.environ["LXD_ROOTFS"]
+        # highest-priority are command line arguments.
         if args.rootfs:
             image_rootfs = args.rootfs
 
@@ -1422,18 +1438,20 @@ def test_sriov(args):
     sriov_test.cleanup()
 
     if result:
-        print("PASS: SRIOV {} was successfully created with a virtual interface".format(testname))
+        print("PASS: SRIOV {} was successfully created with a virtual \
+              interface".format(testname))
         sys.exit(0)
     else:
-        print("FAIL: SRIOV {} failed to create a virtual interface".format(testname))
-        sys.exit(1)	
+        print("FAIL: SRIOV {} failed to create a virtual interface".
+              format(testname))
+        sys.exit(1)
+
 
 def test_lxd_vm(args):
     logging.debug("Executing LXD VM Test")
 
     template = None
     image = None
-    
 
     # First in priority are environment variables.
     if "LXD_TEMPLATE" in os.environ:
@@ -1542,7 +1560,7 @@ def main():
     )
     sriov_test_parser = subparsers.add_parser(
         "sriov", help=("Run the LXD VM validation test")
-    )   
+    )
     parser.add_argument(
         "--debug",
         dest="log_level",
@@ -1576,11 +1594,11 @@ def main():
     sriov_test_parser.add_argument("--template", type=str, default=None)
     sriov_test_parser.add_argument("--image", type=str, default=None)
     sriov_test_parser.add_argument("--rootfs", type=str, default=None)
-    sriov_test_parser.add_argument("--type", choices=['vm','container'], default=None, help="vm container")
+    sriov_test_parser.add_argument("--type", choices=['vm', 'container'],
+                                   default=None, help="vm container")
     sriov_test_parser.set_defaults(func=test_sriov)
 
     args = parser.parse_args()
-    
 
     try:
         logging.basicConfig(level=args.log_level)
